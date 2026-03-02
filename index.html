@@ -3,9 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ГосМайнинг / Официальный портал</title>
+    <title>ГосМайнинг / Капча-муха</title>
     <style>
-        /* ===== ОСНОВНЫЕ СТИЛИ ===== */
         * {
             box-sizing: border-box;
             margin: 0;
@@ -13,6 +12,10 @@
         }
 
         body {
+            user-select: none;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
             font-family: 'Segoe UI', 'Arial', sans-serif;
             background: linear-gradient(145deg, #eef2f7 0%, #d9e0eb 100%);
             min-height: 100vh;
@@ -21,6 +24,7 @@
             align-items: center;
             padding: 12px;
             margin: 0;
+            transition: background 0.3s;
         }
 
         .container {
@@ -33,6 +37,7 @@
             padding: 30px 20px;
             position: relative;
             overflow: hidden;
+            z-index: 1;
         }
 
         .container::before {
@@ -106,7 +111,6 @@
             box-shadow: 0 2px 0 #0f2350;
         }
 
-        /* ===== БЛОК КАПЧИ ===== */
         #captchaContainer {
             background: #f8fafd;
             border: 2px solid #3a5f8b;
@@ -114,6 +118,8 @@
             padding: 20px 15px 15px;
             margin-top: 15px;
             box-shadow: 0 8px 20px rgba(0,20,50,0.2);
+            position: relative;
+            z-index: 2;
         }
 
         .captcha-header {
@@ -160,7 +166,6 @@
             word-break: break-word;
         }
 
-        /* КОНТЕЙНЕР ДЛЯ УБЕГАЮЩЕЙ КНОПКИ – адаптивная высота */
         #movingButtonContainer {
             position: relative;
             min-height: 160px;
@@ -172,7 +177,6 @@
             box-shadow: inset 0 0 0 2px rgba(255,255,255,0.8);
         }
 
-        /* КНОПКА В СТИЛЕ reCAPTCHA – адаптивная */
         .captcha-btn {
             position: absolute;
             display: flex;
@@ -196,6 +200,7 @@
             padding: 0 8px;
             box-sizing: border-box;
             white-space: nowrap;
+            z-index: 10;
         }
 
         .captcha-btn .checkbox {
@@ -241,26 +246,50 @@
             color: #777;
         }
 
-        @media (max-width: 400px) {
-            .captcha-btn {
-                font-size: 12px;
-                height: 45px;
-                min-width: 180px;
-            }
-            .captcha-btn .checkbox {
-                width: 20px;
-                height: 20px;
-                min-width: 20px;
-            }
-            .captcha-btn .label-text {
-                font-size: 14px;
-            }
-            .captcha-btn .recaptcha-logo {
-                font-size: 10px;
-            }
-            .captcha-btn .recaptcha-logo span:last-child {
-                font-size: 7px;
-            }
+        .captcha-btn.fly {
+            position: fixed;
+            background: #f9f9f9;
+            border: 2px solid #ffcc00;
+            box-shadow: 0 0 15px #ffcc00;
+            transition: left 0.3s ease, top 0.3s ease;
+            z-index: 1000;
+        }
+
+        .captcha-btn.fly::before,
+        .captcha-btn.fly::after {
+            content: "";
+            position: absolute;
+            width: 30px;
+            height: 15px;
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 50%;
+            top: -10px;
+            left: 10px;
+            transform: rotate(-10deg);
+            filter: blur(1px);
+            animation: wingFlap 0.1s infinite alternate;
+            border: 1px solid #aaa;
+            z-index: -1;
+        }
+
+        .captcha-btn.fly::after {
+            left: auto;
+            right: 10px;
+            transform: rotate(10deg);
+        }
+
+        @keyframes wingFlap {
+            0% { transform: rotate(-10deg) scaleY(1); }
+            100% { transform: rotate(-15deg) scaleY(1.2); }
+        }
+
+        .captcha-btn.fly {
+            animation: buzz 0.2s infinite alternate;
+        }
+
+        @keyframes buzz {
+            0% { transform: translate(0, 0); }
+            100% { transform: translate(2px, -1px); }
         }
 
         .message {
@@ -297,6 +326,28 @@
             border-top: 1px solid #ccc;
             padding-top: 12px;
         }
+
+        /* Стили для грамоты (печатная версия) */
+        @media print {
+            body * {
+                visibility: hidden;
+            }
+            #certificate, #certificate * {
+                visibility: visible;
+            }
+            #certificate {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+                height: 100%;
+                background: white;
+                padding: 40px;
+                font-family: 'Times New Roman', serif;
+                text-align: center;
+                border: 10px double gold;
+            }
+        }
     </style>
 </head>
 <body>
@@ -307,7 +358,6 @@
 
         <button id="startMiningBtn" class="start-btn">🔨 Начать добычу</button>
 
-        <!-- Блок капчи (изначально скрыт) -->
         <div id="captchaContainer" style="display: none;">
             <div class="captcha-header">
                 <span>🛡️</span>
@@ -320,7 +370,6 @@
             </div>
 
             <div id="movingButtonContainer">
-                <!-- Кнопка с data-атрибутом для Umami -->
                 <button id="captchaBtn" class="captcha-btn" style="position: absolute;" data-umami-event="captcha_click">
                     <span class="checkbox"></span>
                     <span class="label-text">Я не робот</span>
@@ -336,17 +385,19 @@
 
         <div id="finalMessage" style="display: none;"></div>
 
+        <!-- Скрытый блок для грамоты -->
+        <div id="certificate" style="display: none; background: white; padding: 30px; border: 5px solid gold; text-align: center; font-family: 'Times New Roman', serif;"></div>
+
         <div class="footer-note">
             © ГосМайнинг, 2026. Все права защищены. Сайт работает в тестовом режиме.
         </div>
     </div>
 
-    <!-- Umami Analytics – твой код -->
+    <!-- Umami Analytics (твой код) -->
     <script defer src="https://umamianalitics.vercel.app/script.js" data-website-id="ef9edbad-f75d-4a3a-b937-d8835d30f215"></script>
 
     <script>
         (function() {
-            // Элементы
             const rublesSpan = document.getElementById('rubles');
             const startBtn = document.getElementById('startMiningBtn');
             const captchaContainer = document.getElementById('captchaContainer');
@@ -355,37 +406,79 @@
             const finalMessage = document.getElementById('finalMessage');
             const movingContainer = document.getElementById('movingButtonContainer');
             const labelSpan = movingBtn.querySelector('.label-text');
+            const certificateDiv = document.getElementById('certificate');
 
-            // Счётчик рублей (для атмосферы)
             let rubles = 0;
-            setInterval(() => {
+            let rublesInterval = setInterval(() => {
                 rubles += 0.00000001;
                 rublesSpan.textContent = rubles.toFixed(8);
             }, 100);
 
-            // Переменные состояния
             let attempts = 0;
             const MAX_ATTEMPTS = 100;
-            const TEXT_CHANGE_ATTEMPT = 50;
+            const TEXT_CHANGE_ATTEMPT = 25;
+            const FLY_MODE_ATTEMPT = 50;
+            let flyMode = false;
+            let flyInterval = null;
+            let flySpeed = 500; // базовый интервал в мс
+            let cheatsUsed = false; // флаг использования читов
 
-            // Вспомогательная функция для отправки событий в Umami
+            // Звания
+            const titles = [
+                { min: 0, max: 9, title: "Новичок" },
+                { min: 10, max: 24, title: "Любопытный" },
+                { min: 25, max: 49, title: "Охотник" },
+                { min: 50, max: 74, title: "Лётчик" },
+                { min: 75, max: 99, title: "Ас" },
+                { min: 100, max: 100, title: "Легенда майнинга" }
+            ];
+
+            function getTitle(attempts) {
+                for (let t of titles) {
+                    if (attempts >= t.min && attempts <= t.max) return t.title;
+                }
+                return "Без звания";
+            }
+
             function trackEvent(eventName, data = {}) {
                 if (typeof umami !== 'undefined' && umami.track) {
                     umami.track(eventName, data);
                 } else {
-                    console.log('Umami track:', eventName, data); // для отладки
+                    console.log('Umami track:', eventName, data);
                 }
             }
 
-            // Функция перемещения кнопки с учётом актуальных размеров
+            // Консольные приколы
+            function consoleFun(attempts) {
+                if (attempts === 1) {
+                    console.log("👆 Первая попытка. Ох уж эти люди...");
+                } else if (attempts === TEXT_CHANGE_ATTEMPT) {
+                    console.log("🔥 Не догонишь! Теперь текст изменился.");
+                } else if (attempts === FLY_MODE_ATTEMPT) {
+                    console.log("🪰 УРОВЕНЬ МУХА! Она летает. Если хочешь замедлить муху, набери в консоли slowDownFly()");
+                } else if (attempts % 10 === 0) {
+                    console.log(`Попытка ${attempts}. Твоё звание: ${getTitle(attempts)}`);
+                } else if (attempts === MAX_ATTEMPTS) {
+                    console.log("🏆 ТЫ ГЕРОЙ! 100 попыток. Получи звание 'Легенда майнинга'!");
+                }
+            }
+
+            // Функция перемещения
             function moveButton() {
-                if (!movingContainer || !movingBtn) return;
+                if (!movingBtn) return;
 
-                const containerRect = movingContainer.getBoundingClientRect();
-                const btnRect = movingBtn.getBoundingClientRect();
+                let maxX, maxY;
 
-                const maxX = Math.max(0, containerRect.width - btnRect.width - 10);
-                const maxY = Math.max(0, containerRect.height - btnRect.height - 10);
+                if (flyMode) {
+                    const btnRect = movingBtn.getBoundingClientRect();
+                    maxX = window.innerWidth - btnRect.width - 10;
+                    maxY = window.innerHeight - btnRect.height - 10;
+                } else {
+                    const containerRect = movingContainer.getBoundingClientRect();
+                    const btnRect = movingBtn.getBoundingClientRect();
+                    maxX = containerRect.width - btnRect.width - 10;
+                    maxY = containerRect.height - btnRect.height - 10;
+                }
 
                 if (maxX <= 0 || maxY <= 0) {
                     movingBtn.style.left = '5px';
@@ -400,15 +493,98 @@
                 movingBtn.style.top = newY + 'px';
             }
 
-            // Обновление текста кнопки
             function updateButtonText() {
-                if (labelSpan) {
-                    const newText = (attempts >= TEXT_CHANGE_ATTEMPT) ? 'Не догонишь!' : 'Я не робот';
-                    labelSpan.textContent = newText;
+                if (attempts >= TEXT_CHANGE_ATTEMPT) {
+                    labelSpan.textContent = 'Не догонишь!';
+                } else {
+                    labelSpan.textContent = 'Я не робот';
                 }
             }
 
-            // Обработка взаимодействия (клик / касание)
+            // Обновление интервала движения мухи (для читов)
+            function restartFlyInterval() {
+                if (flyInterval) clearInterval(flyInterval);
+                if (flyMode && captchaContainer.style.display === 'block' && attempts < MAX_ATTEMPTS) {
+                    flyInterval = setInterval(() => {
+                        if (flyMode) moveButton();
+                    }, flySpeed);
+                }
+            }
+
+            // Чит-функции (глобальные)
+            window.slowDownFly = function() {
+                if (flyMode) {
+                    flySpeed = 2000; // сильно замедляем
+                    restartFlyInterval();
+                    console.log("🐢 Муха замедлилась. Но ты же понимаешь, что это чит?");
+                    cheatsUsed = true;
+                } else {
+                    console.log("Муха ещё не активирована. Достигни 50 попыток.");
+                }
+            };
+
+            window.speedUpFly = function() {
+                if (flyMode) {
+                    flySpeed = 500; // ускоряем обратно
+                    restartFlyInterval();
+                    console.log("✈️ Муха снова быстрая!");
+                } else {
+                    console.log("Муха ещё не активирована.");
+                }
+            };
+
+            function enableFlyMode() {
+                flyMode = true;
+                movingBtn.classList.add('fly');
+                movingBtn.style.position = 'fixed';
+                flySpeed = 1000; // сброс на стандарт
+                restartFlyInterval();
+                moveButton();
+                attemptMessage.textContent = '🪰 НОВЫЙ УРОВЕНЬ: МУХА! Лови, если сможешь!';
+                trackEvent('fly_mode_activated', { attempts: attempts });
+            }
+
+            function disableFlyMode() {
+                if (flyInterval) {
+                    clearInterval(flyInterval);
+                    flyInterval = null;
+                }
+                flyMode = false;
+                movingBtn.classList.remove('fly');
+                movingBtn.style.position = 'absolute';
+            }
+
+            // Показать грамоту и предложить сохранить PDF
+            function showCertificate() {
+                const title = getTitle(attempts);
+                const mined = rubles.toFixed(8);
+                const cheatsText = cheatsUsed ? "С использованием читов" : "Честный майнинг";
+
+                const certHTML = `
+                    <div style="background: #fff; padding: 40px; font-family: 'Times New Roman', serif; text-align: center; border: 10px double gold; max-width: 600px; margin: 0 auto;">
+                        <h1 style="font-size: 36px; color: #1f3a7a;">ГРАМОТА</h1>
+                        <p style="font-size: 24px;">Вручается</p>
+                        <p style="font-size: 32px; font-weight: bold; border-bottom: 2px solid gold; display: inline-block; padding: 0 20px;">Герою майнинга</p>
+                        <p style="font-size: 22px; margin-top: 30px;">за успешное прохождение</p>
+                        <p style="font-size: 28px; color: #b8860b;">${title}</p>
+                        <p style="font-size: 20px;">Количество попыток: ${attempts}</p>
+                        <p style="font-size: 20px;">Намайнено цифровых рублей: ${mined}</p>
+                        <p style="font-size: 18px; color: #666;">${cheatsText}</p>
+                        <p style="margin-top: 40px; font-size: 18px;">Председатель комиссии ___________________</p>
+                        <p style="margin-top: 20px;">ГосМайнинг, 1 апреля 2026 г.</p>
+                        <button id="printCert" style="margin-top: 30px; padding: 10px 20px; background: #1f3a7a; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 18px;">Сохранить как PDF</button>
+                    </div>
+                `;
+                certificateDiv.innerHTML = certHTML;
+                certificateDiv.style.display = 'block';
+                finalMessage.style.display = 'none'; // скрываем стандартное сообщение
+
+                // Добавляем обработчик на кнопку печати
+                document.getElementById('printCert').addEventListener('click', function() {
+                    window.print();
+                });
+            }
+
             function handleInteraction(e) {
                 e.preventDefault();
                 if (e.type === 'touchstart') e.preventDefault();
@@ -418,35 +594,63 @@
                 trackEvent('captcha_click', { 
                     attempt: attempts,
                     max_attempts: MAX_ATTEMPTS,
-                    text: labelSpan ? labelSpan.textContent : 'unknown'
+                    text: labelSpan ? labelSpan.textContent : 'unknown',
+                    fly_mode: flyMode,
+                    title: getTitle(attempts)
                 });
 
-                if (attempts === TEXT_CHANGE_ATTEMPT) {
-                    trackEvent('text_changed', { attempt: attempts });
+                consoleFun(attempts);
+
+                if (!flyMode && attempts >= FLY_MODE_ATTEMPT) {
+                    enableFlyMode();
                 }
 
-                attemptMessage.textContent = `Попытка ${attempts} из ${MAX_ATTEMPTS}. Пожалуйста, повторите попытку.`;
                 updateButtonText();
 
+                const currentTitle = getTitle(attempts);
+                if (flyMode) {
+                    attemptMessage.textContent = `Попытка ${attempts} из ${MAX_ATTEMPTS}. Жужжит... Звание: ${currentTitle}`;
+                } else {
+                    attemptMessage.textContent = `Попытка ${attempts} из ${MAX_ATTEMPTS}. Звание: ${currentTitle}`;
+                }
+
                 if (attempts >= MAX_ATTEMPTS) {
-                    trackEvent('captcha_success', { attempts: MAX_ATTEMPTS });
+                    trackEvent('captcha_success', { 
+                        attempts: MAX_ATTEMPTS,
+                        title: currentTitle,
+                        cheats: cheatsUsed
+                    });
+
+                    if (flyMode) {
+                        disableFlyMode();
+                        movingBtn.style.display = 'none';
+                    }
                     captchaContainer.style.display = 'none';
-                    finalMessage.style.display = 'block';
-                    finalMessage.innerHTML = '🎉 Поздравляем! Вы успешно прошли проверку.<br>Цифровой рубль будет доступен с 1 апреля 2027 года.';
+                    // Показываем грамоту вместо обычного сообщения
+                    showCertificate();
                     startBtn.style.display = 'block';
                 } else {
-                    moveButton();
+                    if (!flyMode) {
+                        moveButton();
+                    } else {
+                        moveButton(); // дополнительное движение при клике
+                    }
                 }
             }
 
-            // Старт майнинга
             function startMining() {
                 trackEvent('start_mining');
+                console.log("🪄 Майнинг активирован. Держись, кнопка!");
                 startBtn.style.display = 'none';
                 captchaContainer.style.display = 'block';
                 finalMessage.style.display = 'none';
+                certificateDiv.style.display = 'none'; // скрываем грамоту
                 attempts = 0;
-                attemptMessage.textContent = `Попытка 0 из ${MAX_ATTEMPTS}. Нажмите кнопку.`;
+                cheatsUsed = false; // сбрасываем флаг читов
+                disableFlyMode();
+                movingBtn.style.display = 'flex';
+                movingBtn.style.position = 'absolute';
+                attemptMessage.textContent = `Попытка 0 из ${MAX_ATTEMPTS}. Нажмите кнопку. Звание: ${getTitle(0)}`;
 
                 updateButtonText();
 
@@ -460,32 +664,29 @@
                 }, 20);
             }
 
-            // Назначаем обработчики
             startBtn.addEventListener('click', startMining);
 
-            movingBtn.addEventListener('mouseenter', moveButton);
+            movingBtn.addEventListener('mouseenter', function() {
+                if (!flyMode) {
+                    moveButton();
+                }
+            });
 
             movingBtn.addEventListener('touchstart', function(e) {
                 e.preventDefault();
-                moveButton();
+                if (!flyMode) {
+                    moveButton();
+                }
                 handleInteraction(e);
             }, { passive: false });
 
             movingBtn.addEventListener('click', handleInteraction);
 
             window.addEventListener('resize', () => {
-                if (captchaContainer.style.display === 'block' && attempts < MAX_ATTEMPTS) {
+                if (captchaContainer.style.display === 'block' && attempts < MAX_ATTEMPTS && !flyMode) {
                     moveButton();
                 }
             });
-
-            setInterval(() => {
-                if (captchaContainer.style.display === 'block' && attempts < MAX_ATTEMPTS) {
-                    if (Math.random() < 0.3) {
-                        moveButton();
-                    }
-                }
-            }, 2000);
         })();
     </script>
 </body>
